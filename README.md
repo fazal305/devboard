@@ -6,7 +6,7 @@ DevBoard lets users create multiple boards, add custom columns, create task card
 
 ## Live Demo
 
-Coming soon: GitHub Pages link
+https://fazal305.github.io/devboard/
 
 ## Features
 

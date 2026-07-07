@@ -1,15 +1,17 @@
-const STORAGE_KEY = "devboard-state";
+const storageKey = "devboard-state";
+const defaultColumns = ["TO DO", "IN PROGRESS", "REVIEW", "DONE"];
+const cardColors = ["#00f5ff", "#bf5fff", "#39ff88", "#ffcc4d", "#ff4d6d", "#4d7cff"];
 
-const DEFAULT_COLUMNS = ["TO DO", "IN PROGRESS", "REVIEW", "DONE"];
-
-const CARD_COLORS = [
-  "#00f5ff",
-  "#bf5fff",
-  "#39ff88",
-  "#ffcc4d",
-  "#ff4d6d",
-  "#4d7cff"
-];
+const boardList = document.getElementById("boardList");
+const activeBoardTitle = document.getElementById("activeBoardTitle");
+const boardContainer = document.getElementById("boardContainer");
+const statsBar = document.getElementById("statsBar");
+const newBoardInput = document.getElementById("newBoardInput");
+const newBoardBtn = document.getElementById("newBoardBtn");
+const searchInput = document.getElementById("searchInput");
+const clearDoneBtn = document.getElementById("clearDoneBtn");
+const addColumnBtn = document.getElementById("addColumnBtn");
+const themeToggleBtn = document.getElementById("themeToggleBtn");
 
 let appState = {
   activeBoard: "",
@@ -25,19 +27,16 @@ let openForm = {
 let searchQuery = "";
 let expandedCards = [];
 
-/* Creates a unique id for boards, columns, and cards. */
 function generateId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/* Saves the full app state into localStorage. */
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  localStorage.setItem(storageKey, JSON.stringify(appState));
 }
 
-/* Creates the default four kanban columns. */
 function createDefaultColumns() {
-  return DEFAULT_COLUMNS.map(function (columnTitle) {
+  return defaultColumns.map(function (columnTitle) {
     return {
       id: generateId("column"),
       title: columnTitle,
@@ -46,18 +45,27 @@ function createDefaultColumns() {
   });
 }
 
-/* Creates starter data for first launch. */
 function createDefaultState() {
   const defaultBoardId = generateId("board");
-  const defaultColumns = createDefaultColumns();
+  const starterColumns = createDefaultColumns();
 
-  defaultColumns[0].cards.push({
+  starterColumns[0].cards.push({
     id: generateId("card"),
-    title: "Build DevBoard card system",
-    description: "Create, edit, delete, drag, search, and save project cards using appState.",
+    title: "Polish portfolio README",
+    description: "Improve project overview, features, tech stack, and run instructions.",
     priority: "HIGH",
-    dueDate: "2025-06-01",
+    dueDate: "",
     color: "#bf5fff",
+    createdAt: Date.now()
+  });
+
+  starterColumns[1].cards.push({
+    id: generateId("card"),
+    title: "Test drag and drop",
+    description: "Move a card between columns and confirm the saved state updates.",
+    priority: "MEDIUM",
+    dueDate: "",
+    color: "#00f5ff",
     createdAt: Date.now()
   });
 
@@ -67,35 +75,47 @@ function createDefaultState() {
     boards: [
       {
         id: defaultBoardId,
-        name: "My First Project",
-        columns: defaultColumns
+        name: "Portfolio Polish",
+        columns: starterColumns
       }
     ]
   };
 }
 
-/* Loads saved data or creates starter data. */
 function loadState() {
-  const savedState = localStorage.getItem(STORAGE_KEY);
+  const savedState = localStorage.getItem(storageKey);
 
-  if (savedState) {
+  if (!savedState) {
+    appState = createDefaultState();
+    saveState();
+    return;
+  }
+
+  try {
     appState = JSON.parse(savedState);
-  } else {
+
+    if (!Array.isArray(appState.boards) || appState.boards.length === 0) {
+      throw new Error("Saved state is missing boards.");
+    }
+  } catch (error) {
     appState = createDefaultState();
     saveState();
   }
-
-  console.log(appState);
 }
 
-/* Finds and returns the currently active board. */
 function getActiveBoard() {
   return appState.boards.find(function (board) {
     return board.id === appState.activeBoard;
   });
 }
 
-/* Finds a card and its parent column by card id. */
+function findColumnById(columnId) {
+  const activeBoard = getActiveBoard();
+  return activeBoard ? activeBoard.columns.find(function (column) {
+    return column.id === columnId;
+  }) : null;
+}
+
 function findCardById(cardId) {
   const activeBoard = getActiveBoard();
 
@@ -109,70 +129,56 @@ function findCardById(cardId) {
     });
 
     if (card) {
-      return {
-        card: card,
-        column: column
-      };
+      return { card, column };
     }
   }
 
   return null;
 }
 
-/* Finds and returns a column by id from the active board. */
-function findColumnById(columnId) {
-  const activeBoard = getActiveBoard();
-
-  if (!activeBoard) {
-    return null;
-  }
-
-  return activeBoard.columns.find(function (column) {
-    return column.id === columnId;
-  });
-}
-
-/* Applies the current theme from appState. */
 function applyTheme() {
-  document.documentElement.classList.toggle(
-    "light-theme",
-    appState.theme === "light"
-  );
+  document.documentElement.classList.toggle("light-theme", appState.theme === "light");
 }
 
-/* Switches between dark and light themes. */
 function toggleTheme() {
   appState.theme = appState.theme === "dark" ? "light" : "dark";
-
   saveState();
   applyTheme();
 }
 
-/* Renders all boards in the sidebar. */
-function renderSidebar() {
-  const boardList = document.getElementById("boardList");
-  const activeBoardTitle = document.getElementById("activeBoardTitle");
+function createElement(tagName, className, textContent) {
+  const element = document.createElement(tagName);
 
+  if (className) {
+    element.className = className;
+  }
+
+  if (textContent !== undefined) {
+    element.textContent = textContent;
+  }
+
+  return element;
+}
+
+function renderSidebar() {
+  const activeBoard = getActiveBoard();
   boardList.innerHTML = "";
 
   appState.boards.forEach(function (board) {
-    const boardItem = document.createElement("button");
+    const boardItem = createElement("button", board.id === appState.activeBoard ? "board-item active" : "board-item");
+    boardItem.type = "button";
 
-    boardItem.className =
-      board.id === appState.activeBoard
-        ? "board-item active"
-        : "board-item";
+    const boardName = createElement("span", "board-name", board.name);
+    const deleteButton = createElement("span", "delete-board-btn", "x");
+    deleteButton.setAttribute("role", "button");
+    deleteButton.setAttribute("aria-label", `Delete ${board.name}`);
 
-    boardItem.innerHTML = `
-      <span class="board-name">${board.name}</span>
-      <span class="delete-board-btn">×</span>
-    `;
-
+    boardItem.append(boardName, deleteButton);
     boardItem.addEventListener("click", function () {
       switchBoard(board.id);
     });
 
-    boardItem.querySelector(".delete-board-btn").addEventListener("click", function (event) {
+    deleteButton.addEventListener("click", function (event) {
       event.stopPropagation();
       deleteBoard(board.id);
     });
@@ -180,22 +186,15 @@ function renderSidebar() {
     boardList.appendChild(boardItem);
   });
 
-  const activeBoard = getActiveBoard();
-
-  if (activeBoard) {
-    activeBoardTitle.textContent = activeBoard.name;
-  }
+  activeBoardTitle.textContent = activeBoard ? activeBoard.name : "No board selected";
 }
 
-/* Renders every column and updates stats for the active board. */
 function renderBoard() {
-  const boardContainer = document.getElementById("boardContainer");
   const activeBoard = getActiveBoard();
-
   boardContainer.innerHTML = "";
 
   if (!activeBoard) {
-    boardContainer.innerHTML = "No active board found.";
+    boardContainer.appendChild(createElement("p", "empty-column-text", "No active board found."));
     return;
   }
 
@@ -206,27 +205,39 @@ function renderBoard() {
   renderStats();
 }
 
-/* Builds one column element from one column object. */
 function renderColumn(column) {
-  const columnElement = document.createElement("div");
-
-  columnElement.className = "board-column";
+  const columnElement = createElement("div", "board-column");
   columnElement.dataset.columnId = column.id;
 
-  columnElement.innerHTML = `
-    <div class="column-header">
-      <div class="column-title-wrap">
-        <h3 class="column-title">${column.title}</h3>
-        <span class="column-count">${column.cards.length} cards</span>
-      </div>
+  const header = createElement("div", "column-header");
+  const titleWrap = createElement("div", "column-title-wrap");
+  const title = createElement("h3", "column-title", column.title);
+  const count = createElement("span", "column-count", `${column.cards.length} cards`);
+  const deleteButton = createElement("button", "delete-column-btn", "x");
+  deleteButton.type = "button";
+  deleteButton.setAttribute("aria-label", `Delete ${column.title}`);
 
-      <button class="delete-column-btn">×</button>
-    </div>
+  titleWrap.append(title, count);
+  header.append(titleWrap, deleteButton);
 
-    <div class="card-list"></div>
+  const cardList = createElement("div", "card-list");
 
-    <button class="add-card-btn">+ Add Card</button>
-  `;
+  if (column.cards.length === 0 && openForm.columnId !== column.id) {
+    cardList.appendChild(createElement("div", "empty-column-text", "+ Drop cards here"));
+  }
+
+  column.cards.forEach(function (card) {
+    cardList.appendChild(renderCard(card, column.id));
+  });
+
+  if (openForm.columnId === column.id && openForm.cardId === null) {
+    cardList.appendChild(createCardForm(column.id));
+  }
+
+  const addCardButton = createElement("button", "add-card-btn", "+ Add Card");
+  addCardButton.type = "button";
+
+  columnElement.append(header, cardList, addCardButton);
 
   columnElement.addEventListener("dragover", function (event) {
     event.preventDefault();
@@ -247,76 +258,53 @@ function renderColumn(column) {
     columnElement.classList.remove("drag-over");
   });
 
-  const cardList = columnElement.querySelector(".card-list");
-
-  if (column.cards.length === 0) {
-    cardList.innerHTML = `<div class="empty-column-text">+ Drop cards here</div>`;
-  }
-
-  column.cards.forEach(function (card) {
-    cardList.appendChild(renderCard(card, column.id));
-  });
-
-  if (openForm.columnId === column.id && openForm.cardId === null) {
-    cardList.appendChild(createCardForm(column.id));
-  }
-
-  columnElement.querySelector(".delete-column-btn").addEventListener("click", function () {
+  deleteButton.addEventListener("click", function () {
     deleteColumn(column.id);
   });
 
-  columnElement.querySelector(".add-card-btn").addEventListener("click", function () {
+  addCardButton.addEventListener("click", function () {
     createCard(column.id);
   });
 
   return columnElement;
 }
 
-/* Builds one card element from one card object. */
 function renderCard(card, columnId) {
-  const cardElement = document.createElement("article");
-
-  const priorityClass = `priority-${card.priority.toLowerCase()}`;
   const cleanSearchQuery = searchQuery.trim().toLowerCase();
   const titleMatchesSearch = card.title.toLowerCase().includes(cleanSearchQuery);
   const isExpanded = expandedCards.includes(card.id);
-
-  cardElement.className =
-    cleanSearchQuery && !titleMatchesSearch
-      ? "dev-card search-dimmed"
-      : "dev-card";
+  const priorityClass = `priority-${card.priority.toLowerCase()}`;
+  const cardElement = createElement("article", cleanSearchQuery && !titleMatchesSearch ? "dev-card search-dimmed" : "dev-card");
 
   cardElement.draggable = true;
   cardElement.dataset.cardId = card.id;
 
-  cardElement.innerHTML = `
-    <div class="card-color-bar" style="background: ${card.color};"></div>
+  const colorBar = createElement("div", "card-color-bar");
+  colorBar.style.background = card.color;
 
-    <div class="card-top-row">
-      <span class="priority-badge ${priorityClass}">
-        ${card.priority}
-      </span>
+  const topRow = createElement("div", "card-top-row");
+  const priorityBadge = createElement("span", `priority-badge ${priorityClass}`, card.priority);
+  const actions = createElement("div", "card-actions");
+  const editButton = createElement("button", "card-action-btn edit-card-btn", "Edit");
+  const deleteButton = createElement("button", "card-action-btn card-delete-btn", "x");
+  editButton.type = "button";
+  deleteButton.type = "button";
+  actions.append(editButton, deleteButton);
+  topRow.append(priorityBadge, actions);
 
-      <div class="card-actions">
-        <button class="card-action-btn edit-card-btn">✎</button>
-        <button class="card-action-btn card-delete-btn">×</button>
-      </div>
-    </div>
+  const title = createElement("h4", "card-title", card.title);
+  const description = card.description ? createElement("p", isExpanded ? "card-description" : "card-description hidden", card.description) : null;
+  const dueDate = card.dueDate ? createElement("span", "card-due-date", `Due: ${card.dueDate}`) : null;
 
-    <h4 class="card-title">${card.title}</h4>
+  cardElement.append(colorBar, topRow, title);
 
-    ${
-      card.description
-        ? `<p class="card-description ${isExpanded ? "" : "hidden"}">${card.description}</p>`
-        : ""
-    }
+  if (description) {
+    cardElement.appendChild(description);
+  }
 
-    ${
-      card.dueDate
-        ? `<span class="card-due-date">Due: ${card.dueDate}</span>`
-        : ""
-    }
-  `;
+  if (dueDate) {
+    cardElement.appendChild(dueDate);
+  }
 
   cardElement.addEventListener("dragstart", function (event) {
     event.dataTransfer.setData("cardId", card.id);
@@ -328,15 +316,15 @@ function renderCard(card, columnId) {
     cardElement.classList.remove("dragging");
   });
 
-  cardElement.querySelector(".card-title").addEventListener("click", function () {
+  title.addEventListener("click", function () {
     toggleCardExpand(card.id);
   });
 
-  cardElement.querySelector(".edit-card-btn").addEventListener("click", function () {
+  editButton.addEventListener("click", function () {
     editCard(card.id);
   });
 
-  cardElement.querySelector(".card-delete-btn").addEventListener("click", function () {
+  deleteButton.addEventListener("click", function () {
     deleteCard(card.id, columnId);
   });
 
@@ -347,20 +335,97 @@ function renderCard(card, columnId) {
   return cardElement;
 }
 
-/* Expands or collapses a card description. */
-function toggleCardExpand(cardId) {
-  if (expandedCards.includes(cardId)) {
-    expandedCards = expandedCards.filter(function (id) {
-      return id !== cardId;
+function createCardForm(columnId, existingCard) {
+  const formElement = createElement("form", "card-form");
+  const selectedColor = existingCard ? existingCard.color : cardColors[0];
+  let chosenColor = selectedColor;
+
+  const titleInput = createElement("input", "form-title");
+  titleInput.type = "text";
+  titleInput.placeholder = "Card title";
+  titleInput.required = true;
+  titleInput.value = existingCard ? existingCard.title : "";
+
+  const descriptionInput = createElement("textarea", "form-description");
+  descriptionInput.placeholder = "Card description";
+  descriptionInput.value = existingCard ? existingCard.description : "";
+
+  const priorityInput = createElement("select", "form-priority");
+  ["LOW", "MEDIUM", "HIGH"].forEach(function (priority) {
+    const option = createElement("option", "", priority);
+    option.value = priority;
+    option.selected = existingCard ? existingCard.priority === priority : priority === "MEDIUM";
+    priorityInput.appendChild(option);
+  });
+
+  const dueDateInput = createElement("input", "form-due-date");
+  dueDateInput.type = "date";
+  dueDateInput.value = existingCard ? existingCard.dueDate : "";
+
+  const colorOptions = createElement("div", "color-options");
+  cardColors.forEach(function (color) {
+    const colorButton = createElement("button", color === selectedColor ? "color-option active" : "color-option");
+    colorButton.type = "button";
+    colorButton.dataset.color = color;
+    colorButton.style.background = color;
+    colorButton.setAttribute("aria-label", `Choose ${color}`);
+
+    colorButton.addEventListener("click", function () {
+      colorOptions.querySelectorAll(".color-option").forEach(function (button) {
+        button.classList.remove("active");
+      });
+
+      colorButton.classList.add("active");
+      chosenColor = color;
     });
-  } else {
-    expandedCards.push(cardId);
-  }
+
+    colorOptions.appendChild(colorButton);
+  });
+
+  const actions = createElement("div", "form-actions");
+  const saveButton = createElement("button", "form-save-btn", existingCard ? "Save Changes" : "Create Card");
+  const cancelButton = createElement("button", "form-cancel-btn", "Cancel");
+  saveButton.type = "submit";
+  cancelButton.type = "button";
+  actions.append(saveButton, cancelButton);
+
+  formElement.append(titleInput, descriptionInput, priorityInput, dueDateInput, colorOptions, actions);
+
+  formElement.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    const cardData = {
+      title: titleInput.value,
+      description: descriptionInput.value,
+      priority: priorityInput.value,
+      dueDate: dueDateInput.value,
+      color: chosenColor
+    };
+
+    if (existingCard) {
+      updateCard(existingCard.id, cardData);
+    } else {
+      saveCard(columnId, cardData);
+    }
+  });
+
+  cancelButton.addEventListener("click", closeOpenForm);
+
+  window.setTimeout(function () {
+    titleInput.focus();
+  }, 0);
+
+  return formElement;
+}
+
+function toggleCardExpand(cardId) {
+  expandedCards = expandedCards.includes(cardId)
+    ? expandedCards.filter(function (id) { return id !== cardId; })
+    : expandedCards.concat(cardId);
 
   renderBoard();
 }
 
-/* Moves a dragged card from one column to another. */
 function onDrop(targetColumnId, event) {
   event.preventDefault();
 
@@ -391,127 +456,32 @@ function onDrop(targetColumnId, event) {
   });
 
   targetColumn.cards.push(cardToMove);
-
   saveState();
   renderBoard();
 }
 
-/* Opens a blank card form in a column. */
 function createCard(columnId) {
-  openForm = {
-    columnId: columnId,
-    cardId: null
-  };
-
+  openForm = { columnId, cardId: null };
   renderBoard();
 }
 
-/* Builds the card form for creating or editing cards. */
-function createCardForm(columnId, existingCard) {
-  const formElement = document.createElement("form");
-
-  const selectedColor = existingCard ? existingCard.color : CARD_COLORS[0];
-
-  formElement.className = "card-form";
-
-  formElement.innerHTML = `
-    <input class="form-title" type="text" placeholder="Card title" value="${existingCard ? existingCard.title : ""}" required>
-
-    <textarea class="form-description" placeholder="Card description">${existingCard ? existingCard.description : ""}</textarea>
-
-    <select class="form-priority">
-      <option value="LOW" ${existingCard && existingCard.priority === "LOW" ? "selected" : ""}>LOW</option>
-      <option value="MEDIUM" ${existingCard && existingCard.priority === "MEDIUM" ? "selected" : ""}>MEDIUM</option>
-      <option value="HIGH" ${existingCard && existingCard.priority === "HIGH" ? "selected" : ""}>HIGH</option>
-    </select>
-
-    <input class="form-due-date" type="date" value="${existingCard ? existingCard.dueDate : ""}">
-
-    <div class="color-options">
-      ${CARD_COLORS.map(function (color) {
-        return `
-          <button type="button" class="color-option ${color === selectedColor ? "active" : ""}" data-color="${color}" style="background: ${color};"></button>
-        `;
-      }).join("")}
-    </div>
-
-    <div class="form-actions">
-      <button class="form-save-btn" type="submit">
-        ${existingCard ? "Save Changes" : "Create Card"}
-      </button>
-
-      <button class="form-cancel-btn" type="button">
-        Cancel
-      </button>
-    </div>
-  `;
-
-  let chosenColor = selectedColor;
-
-  const colorButtons = formElement.querySelectorAll(".color-option");
-
-  colorButtons.forEach(function (colorButton) {
-    colorButton.addEventListener("click", function () {
-      colorButtons.forEach(function (button) {
-        button.classList.remove("active");
-      });
-
-      colorButton.classList.add("active");
-      chosenColor = colorButton.dataset.color;
-    });
-  });
-
-  formElement.addEventListener("submit", function (event) {
-    event.preventDefault();
-
-    const cardData = {
-      title: formElement.querySelector(".form-title").value,
-      description: formElement.querySelector(".form-description").value,
-      priority: formElement.querySelector(".form-priority").value,
-      dueDate: formElement.querySelector(".form-due-date").value,
-      color: chosenColor
-    };
-
-    if (existingCard) {
-      updateCard(existingCard.id, cardData);
-    } else {
-      saveCard(columnId, cardData);
-    }
-  });
-
-  formElement.querySelector(".form-cancel-btn").addEventListener("click", function () {
-    closeOpenForm();
-  });
-
-  setTimeout(function () {
-    formElement.querySelector(".form-title").focus();
-  }, 0);
-
-  return formElement;
-}
-
-/* Closes any open create or edit form. */
 function closeOpenForm() {
-  openForm = {
-    columnId: null,
-    cardId: null
-  };
-
+  openForm = { columnId: null, cardId: null };
   renderBoard();
 }
 
-/* Saves a new card into the correct column. */
 function saveCard(columnId, cardData) {
   const targetColumn = findColumnById(columnId);
+  const cleanTitle = cardData.title.trim();
 
-  if (!targetColumn || cardData.title.trim() === "") {
+  if (!targetColumn || cleanTitle === "") {
     alert("Card title is required.");
     return;
   }
 
   targetColumn.cards.push({
     id: generateId("card"),
-    title: cardData.title.trim(),
+    title: cleanTitle,
     description: cardData.description.trim(),
     priority: cardData.priority,
     dueDate: cardData.dueDate,
@@ -519,12 +489,11 @@ function saveCard(columnId, cardData) {
     createdAt: Date.now()
   });
 
-  closeOpenForm();
+  openForm = { columnId: null, cardId: null };
   saveState();
   renderBoard();
 }
 
-/* Opens the edit form for an existing card. */
 function editCard(cardId) {
   const foundCard = findCardById(cardId);
 
@@ -532,52 +501,40 @@ function editCard(cardId) {
     return;
   }
 
-  openForm = {
-    columnId: foundCard.column.id,
-    cardId: cardId
-  };
-
+  openForm = { columnId: foundCard.column.id, cardId };
   renderBoard();
 }
 
-/* Updates an existing card with new form data. */
 function updateCard(cardId, cardData) {
   const foundCard = findCardById(cardId);
+  const cleanTitle = cardData.title.trim();
 
-  if (!foundCard || cardData.title.trim() === "") {
+  if (!foundCard || cleanTitle === "") {
     alert("Card title is required.");
     return;
   }
 
-  foundCard.card.title = cardData.title.trim();
+  foundCard.card.title = cleanTitle;
   foundCard.card.description = cardData.description.trim();
   foundCard.card.priority = cardData.priority;
   foundCard.card.dueDate = cardData.dueDate;
   foundCard.card.color = cardData.color;
 
-  closeOpenForm();
+  openForm = { columnId: null, cardId: null };
   saveState();
   renderBoard();
 }
 
-/* Deletes a card from its column. */
 function deleteCard(cardId, columnId) {
   const targetColumn = findColumnById(columnId);
 
-  if (!targetColumn) {
-    return;
-  }
-
-  const confirmed = confirm("Delete this card?");
-
-  if (!confirmed) {
+  if (!targetColumn || !confirm("Delete this card?")) {
     return;
   }
 
   targetColumn.cards = targetColumn.cards.filter(function (card) {
     return card.id !== cardId;
   });
-
   expandedCards = expandedCards.filter(function (id) {
     return id !== cardId;
   });
@@ -586,17 +543,11 @@ function deleteCard(cardId, columnId) {
   renderBoard();
 }
 
-/* Adds a custom column to the active board. */
 function addColumn() {
   const activeBoard = getActiveBoard();
-
-  if (!activeBoard) {
-    return;
-  }
-
   const columnName = prompt("Enter column name:");
 
-  if (!columnName || columnName.trim() === "") {
+  if (!activeBoard || !columnName || columnName.trim() === "") {
     return;
   }
 
@@ -610,17 +561,10 @@ function addColumn() {
   renderBoard();
 }
 
-/* Deletes a column from the active board. */
 function deleteColumn(columnId) {
   const activeBoard = getActiveBoard();
 
-  if (!activeBoard) {
-    return;
-  }
-
-  const confirmed = confirm("Delete this column?");
-
-  if (!confirmed) {
+  if (!activeBoard || !confirm("Delete this column?")) {
     return;
   }
 
@@ -632,48 +576,40 @@ function deleteColumn(columnId) {
   renderBoard();
 }
 
-/* Updates search text and re-renders cards with dimmed non-matches. */
-function filterCards(query) {
-  searchQuery = query;
-  renderBoard();
-}
-
-/* Renders total and per-column card counts. */
 function renderStats() {
-  const statsBar = document.getElementById("statsBar");
   const activeBoard = getActiveBoard();
+  statsBar.innerHTML = "";
 
-  if (!statsBar || !activeBoard) {
+  if (!activeBoard) {
     return;
   }
 
   let totalCards = 0;
 
-  const columnStats = activeBoard.columns.map(function (column) {
+  activeBoard.columns.forEach(function (column) {
     totalCards += column.cards.length;
-
-    return `
-      <span class="stat-pill pop">
-        ${column.title}: <strong>${column.cards.length}</strong>
-      </span>
-    `;
   });
 
-  statsBar.innerHTML = `
-    <span class="stat-pill pop">
-      TOTAL: <strong>${totalCards}</strong>
-    </span>
-    ${columnStats.join("")}
-  `;
+  statsBar.appendChild(createStatPill("TOTAL", totalCards));
 
-  setTimeout(function () {
+  activeBoard.columns.forEach(function (column) {
+    statsBar.appendChild(createStatPill(column.title, column.cards.length));
+  });
+
+  window.setTimeout(function () {
     statsBar.querySelectorAll(".stat-pill").forEach(function (pill) {
       pill.classList.remove("pop");
     });
   }, 220);
 }
 
-/* Removes all cards from the DONE column after confirmation. */
+function createStatPill(label, value) {
+  const pill = createElement("span", "stat-pill pop");
+  const strong = createElement("strong", "", String(value));
+  pill.append(document.createTextNode(`${label}: `), strong);
+  return pill;
+}
+
 function clearDoneCards() {
   const activeBoard = getActiveBoard();
 
@@ -695,19 +631,15 @@ function clearDoneCards() {
     return;
   }
 
-  const confirmed = confirm("Clear all cards from DONE?");
-
-  if (!confirmed) {
+  if (!confirm("Clear all cards from DONE?")) {
     return;
   }
 
   doneColumn.cards = [];
-
   saveState();
   renderBoard();
 }
 
-/* Creates a new board and makes it active. */
 function createBoard(name) {
   const cleanName = name.trim();
 
@@ -725,50 +657,29 @@ function createBoard(name) {
   appState.boards.push(newBoard);
   appState.activeBoard = newBoard.id;
   searchQuery = "";
-
-  const searchInput = document.getElementById("searchInput");
-
-  if (searchInput) {
-    searchInput.value = "";
-  }
-
+  searchInput.value = "";
   saveState();
   renderSidebar();
   renderBoard();
 }
 
-/* Switches the active board by id. */
 function switchBoard(boardId) {
   appState.activeBoard = boardId;
-
-  openForm = {
-    columnId: null,
-    cardId: null
-  };
-
+  openForm = { columnId: null, cardId: null };
   searchQuery = "";
-
-  const searchInput = document.getElementById("searchInput");
-
-  if (searchInput) {
-    searchInput.value = "";
-  }
-
+  searchInput.value = "";
   saveState();
   renderSidebar();
   renderBoard();
 }
 
-/* Deletes a board and safely switches to another board. */
 function deleteBoard(boardId) {
   if (appState.boards.length === 1) {
     alert("You need at least one board.");
     return;
   }
 
-  const confirmed = confirm("Delete this board?");
-
-  if (!confirmed) {
+  if (!confirm("Delete this board?")) {
     return;
   }
 
@@ -785,31 +696,23 @@ function deleteBoard(boardId) {
   renderBoard();
 }
 
-/* Handles the new board input and button. */
 function handleNewBoardSubmit() {
-  const newBoardInput = document.getElementById("newBoardInput");
-
   createBoard(newBoardInput.value);
-
   newBoardInput.value = "";
 }
 
-/* Handles global keyboard shortcuts. */
+function filterCards(query) {
+  searchQuery = query;
+  renderBoard();
+}
+
 function handleKeyboardShortcuts(event) {
   if (event.key === "Escape") {
     closeOpenForm();
   }
 }
 
-/* Sets up button and input event listeners. */
 function initializeEvents() {
-  const themeToggleBtn = document.getElementById("themeToggleBtn");
-  const newBoardBtn = document.getElementById("newBoardBtn");
-  const newBoardInput = document.getElementById("newBoardInput");
-  const addColumnBtn = document.getElementById("addColumnBtn");
-  const searchInput = document.getElementById("searchInput");
-  const clearDoneBtn = document.getElementById("clearDoneBtn");
-
   themeToggleBtn.addEventListener("click", toggleTheme);
   newBoardBtn.addEventListener("click", handleNewBoardSubmit);
   addColumnBtn.addEventListener("click", addColumn);
@@ -821,18 +724,19 @@ function initializeEvents() {
     }
   });
 
-  searchInput.addEventListener("keyup", function () {
+  searchInput.addEventListener("input", function () {
     filterCards(searchInput.value);
   });
 
   document.addEventListener("keydown", handleKeyboardShortcuts);
 }
 
-loadState();
-applyTheme();
-
-document.addEventListener("DOMContentLoaded", function () {
+function startApp() {
+  loadState();
+  applyTheme();
   initializeEvents();
   renderSidebar();
   renderBoard();
-});
+}
+
+document.addEventListener("DOMContentLoaded", startApp);

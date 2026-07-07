@@ -1,81 +1,87 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A responsive vanilla JavaScript Kanban board with cards, custom columns, search, stats, drag-and-drop, and local saves."
+    />
 
-  <title>DevBoard</title>
+    <title>DevBoard</title>
 
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  >
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="devboard-styles.css">
-</head>
-
-<body>
-
-  <div class="app-layout">
-
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <h1>DEVBOARD</h1>
-        <p>Project command center</p>
-      </div>
-
-      <div id="boardList" class="board-list"></div>
-
-      <div class="sidebar-footer">
-        <input id="newBoardInput" class="new-board-input" type="text" placeholder="New board name">
-
-        <button id="newBoardBtn" class="new-board-btn">
-          + New Board
-        </button>
-      </div>
-    </aside>
-
-    <main class="main-content">
-
-      <header class="top-bar">
-
-        <div>
-          <p class="eyebrow">ACTIVE BOARD</p>
-          <h2 id="activeBoardTitle">Project Board</h2>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="devboard-styles.css" />
+  </head>
+  <body>
+    <div class="app-layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h1>DEVBOARD</h1>
+          <p>Project command center</p>
         </div>
 
-        <div class="top-actions">
-          <input id="searchInput" class="search-input" type="search" placeholder="Search cards...">
+        <div id="boardList" class="board-list" aria-label="Boards"></div>
 
-          <button id="clearDoneBtn" class="danger-btn">
-            Clear Done
-          </button>
-
-          <button id="addColumnBtn" class="secondary-btn">
-            + Add Column
-          </button>
-
-          <button id="themeToggleBtn" class="theme-btn">
-            Toggle Theme
+        <div class="sidebar-footer">
+          <label class="sr-only" for="newBoardInput">New board name</label>
+          <input
+            id="newBoardInput"
+            class="new-board-input"
+            type="text"
+            placeholder="New board name"
+          />
+          <button id="newBoardBtn" class="new-board-btn" type="button">
+            + New Board
           </button>
         </div>
+      </aside>
 
-      </header>
+      <main class="main-content">
+        <header class="top-bar">
+          <div>
+            <p class="eyebrow">Active Board</p>
+            <h2 id="activeBoardTitle">Project Board</h2>
+          </div>
 
-      <section id="boardContainer" class="board-container"></section>
+          <div class="top-actions">
+            <label class="sr-only" for="searchInput">Search cards</label>
+            <input
+              id="searchInput"
+              class="search-input"
+              type="search"
+              placeholder="Search cards..."
+            />
+            <button id="clearDoneBtn" class="danger-btn" type="button">
+              Clear Done
+            </button>
+            <button id="addColumnBtn" class="secondary-btn" type="button">
+              + Add Column
+            </button>
+            <button id="themeToggleBtn" class="theme-btn" type="button">
+              Toggle Theme
+            </button>
+          </div>
+        </header>
 
-      <section id="statsBar" class="stats-bar"></section>
+        <section
+          id="boardContainer"
+          class="board-container"
+          aria-label="Kanban board"
+        ></section>
+        <section
+          id="statsBar"
+          class="stats-bar"
+          aria-label="Board stats"
+        ></section>
+      </main>
+    </div>
 
-    </main>
-
-  </div>
-
-  <script src="devboard-script.js"></script>
-
-</body>
+    <script src="devboard-script.js"></script>
+  </body>
 </html>

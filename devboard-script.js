@@ -160,6 +160,28 @@ function createElement(tagName, className, textContent) {
   return element;
 }
 
+function showToast(message) {
+  const existingToast = document.querySelector(".toast");
+
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  const toast = createElement("div", "toast", message);
+  document.body.appendChild(toast);
+
+  window.setTimeout(function () {
+    toast.classList.add("toast-visible");
+  }, 10);
+
+  window.setTimeout(function () {
+    toast.classList.remove("toast-visible");
+    window.setTimeout(function () {
+      toast.remove();
+    }, 200);
+  }, 2000);
+}
+
 function renderSidebar() {
   const activeBoard = getActiveBoard();
   boardList.innerHTML = "";
@@ -196,6 +218,22 @@ function renderBoard() {
   if (!activeBoard) {
     boardContainer.appendChild(createElement("p", "empty-column-text", "No active board found."));
     return;
+  }
+
+  const cleanSearchQuery = searchQuery.trim().toLowerCase();
+
+  if (cleanSearchQuery) {
+    const hasMatchingCard = activeBoard.columns.some(function (column) {
+      return column.cards.some(function (card) {
+        return card.title.toLowerCase().includes(cleanSearchQuery);
+      });
+    });
+
+    if (!hasMatchingCard) {
+      boardContainer.appendChild(createElement("p", "empty-column-text", "No cards match your search."));
+      renderStats();
+      return;
+    }
   }
 
   activeBoard.columns.forEach(function (column) {
@@ -458,6 +496,7 @@ function onDrop(targetColumnId, event) {
   targetColumn.cards.push(cardToMove);
   saveState();
   renderBoard();
+  showToast("Card moved.");
 }
 
 function createCard(columnId) {
@@ -492,6 +531,7 @@ function saveCard(columnId, cardData) {
   openForm = { columnId: null, cardId: null };
   saveState();
   renderBoard();
+  showToast("Card created.");
 }
 
 function editCard(cardId) {
@@ -523,6 +563,7 @@ function updateCard(cardId, cardData) {
   openForm = { columnId: null, cardId: null };
   saveState();
   renderBoard();
+  showToast("Card saved.");
 }
 
 function deleteCard(cardId, columnId) {

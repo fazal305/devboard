@@ -1,6 +1,13 @@
 const storageKey = "devboard-state";
 const defaultColumns = ["TO DO", "IN PROGRESS", "REVIEW", "DONE"];
-const cardColors = ["#00f5ff", "#bf5fff", "#39ff88", "#ffcc4d", "#ff4d6d", "#4d7cff"];
+const cardColors = [
+  "#00f5ff",
+  "#bf5fff",
+  "#39ff88",
+  "#ffcc4d",
+  "#ff4d6d",
+  "#4d7cff",
+];
 
 const boardList = document.getElementById("boardList");
 const activeBoardTitle = document.getElementById("activeBoardTitle");
@@ -16,12 +23,12 @@ const themeToggleBtn = document.getElementById("themeToggleBtn");
 let appState = {
   activeBoard: "",
   theme: "dark",
-  boards: []
+  boards: [],
 };
 
 let openForm = {
   columnId: null,
-  cardId: null
+  cardId: null,
 };
 
 let searchQuery = "";
@@ -40,7 +47,7 @@ function createDefaultColumns() {
     return {
       id: generateId("column"),
       title: columnTitle,
-      cards: []
+      cards: [],
     };
   });
 }
@@ -52,21 +59,23 @@ function createDefaultState() {
   starterColumns[0].cards.push({
     id: generateId("card"),
     title: "Polish portfolio README",
-    description: "Improve project overview, features, tech stack, and run instructions.",
+    description:
+      "Improve project overview, features, tech stack, and run instructions.",
     priority: "HIGH",
     dueDate: "",
     color: "#bf5fff",
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 
   starterColumns[1].cards.push({
     id: generateId("card"),
     title: "Test drag and drop",
-    description: "Move a card between columns and confirm the saved state updates.",
+    description:
+      "Move a card between columns and confirm the saved state updates.",
     priority: "MEDIUM",
     dueDate: "",
     color: "#00f5ff",
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 
   return {
@@ -76,9 +85,9 @@ function createDefaultState() {
       {
         id: defaultBoardId,
         name: "Portfolio Polish",
-        columns: starterColumns
-      }
-    ]
+        columns: starterColumns,
+      },
+    ],
   };
 }
 
@@ -111,9 +120,11 @@ function getActiveBoard() {
 
 function findColumnById(columnId) {
   const activeBoard = getActiveBoard();
-  return activeBoard ? activeBoard.columns.find(function (column) {
-    return column.id === columnId;
-  }) : null;
+  return activeBoard
+    ? activeBoard.columns.find(function (column) {
+        return column.id === columnId;
+      })
+    : null;
 }
 
 function findCardById(cardId) {
@@ -137,7 +148,10 @@ function findCardById(cardId) {
 }
 
 function applyTheme() {
-  document.documentElement.classList.toggle("light-theme", appState.theme === "light");
+  document.documentElement.classList.toggle(
+    "light-theme",
+    appState.theme === "light",
+  );
 }
 
 function toggleTheme() {
@@ -187,7 +201,10 @@ function renderSidebar() {
   boardList.innerHTML = "";
 
   appState.boards.forEach(function (board) {
-    const boardItem = createElement("button", board.id === appState.activeBoard ? "board-item active" : "board-item");
+    const boardItem = createElement(
+      "button",
+      board.id === appState.activeBoard ? "board-item active" : "board-item",
+    );
     boardItem.type = "button";
 
     const boardName = createElement("span", "board-name", board.name);
@@ -208,7 +225,9 @@ function renderSidebar() {
     boardList.appendChild(boardItem);
   });
 
-  activeBoardTitle.textContent = activeBoard ? activeBoard.name : "No board selected";
+  activeBoardTitle.textContent = activeBoard
+    ? activeBoard.name
+    : "No board selected";
 }
 
 function renderBoard() {
@@ -216,7 +235,9 @@ function renderBoard() {
   boardContainer.innerHTML = "";
 
   if (!activeBoard) {
-    boardContainer.appendChild(createElement("p", "empty-column-text", "No active board found."));
+    boardContainer.appendChild(
+      createElement("p", "empty-column-text", "No active board found."),
+    );
     return;
   }
 
@@ -230,7 +251,9 @@ function renderBoard() {
     });
 
     if (!hasMatchingCard) {
-      boardContainer.appendChild(createElement("p", "empty-column-text", "No cards match your search."));
+      boardContainer.appendChild(
+        createElement("p", "empty-column-text", "No cards match your search."),
+      );
       renderStats();
       return;
     }
@@ -250,7 +273,11 @@ function renderColumn(column) {
   const header = createElement("div", "column-header");
   const titleWrap = createElement("div", "column-title-wrap");
   const title = createElement("h3", "column-title", column.title);
-  const count = createElement("span", "column-count", `${column.cards.length} cards`);
+  const count = createElement(
+    "span",
+    "column-count",
+    `${column.cards.length} cards`,
+  );
   const deleteButton = createElement("button", "delete-column-btn", "x");
   deleteButton.type = "button";
   deleteButton.setAttribute("aria-label", `Delete ${column.title}`);
@@ -261,7 +288,9 @@ function renderColumn(column) {
   const cardList = createElement("div", "card-list");
 
   if (column.cards.length === 0 && openForm.columnId !== column.id) {
-    cardList.appendChild(createElement("div", "empty-column-text", "+ Drop cards here"));
+    cardList.appendChild(
+      createElement("div", "empty-column-text", "+ Drop cards here"),
+    );
   }
 
   column.cards.forEach(function (card) {
@@ -309,10 +338,17 @@ function renderColumn(column) {
 
 function renderCard(card, columnId) {
   const cleanSearchQuery = searchQuery.trim().toLowerCase();
-  const titleMatchesSearch = card.title.toLowerCase().includes(cleanSearchQuery);
+  const titleMatchesSearch = card.title
+    .toLowerCase()
+    .includes(cleanSearchQuery);
   const isExpanded = expandedCards.includes(card.id);
   const priorityClass = `priority-${card.priority.toLowerCase()}`;
-  const cardElement = createElement("article", cleanSearchQuery && !titleMatchesSearch ? "dev-card search-dimmed" : "dev-card");
+  const cardElement = createElement(
+    "article",
+    cleanSearchQuery && !titleMatchesSearch
+      ? "dev-card search-dimmed"
+      : "dev-card",
+  );
 
   cardElement.draggable = true;
   cardElement.dataset.cardId = card.id;
@@ -321,18 +357,38 @@ function renderCard(card, columnId) {
   colorBar.style.background = card.color;
 
   const topRow = createElement("div", "card-top-row");
-  const priorityBadge = createElement("span", `priority-badge ${priorityClass}`, card.priority);
+  const priorityBadge = createElement(
+    "span",
+    `priority-badge ${priorityClass}`,
+    card.priority,
+  );
   const actions = createElement("div", "card-actions");
-  const editButton = createElement("button", "card-action-btn edit-card-btn", "Edit");
-  const deleteButton = createElement("button", "card-action-btn card-delete-btn", "x");
+  const editButton = createElement(
+    "button",
+    "card-action-btn edit-card-btn",
+    "Edit",
+  );
+  const deleteButton = createElement(
+    "button",
+    "card-action-btn card-delete-btn",
+    "x",
+  );
   editButton.type = "button";
   deleteButton.type = "button";
   actions.append(editButton, deleteButton);
   topRow.append(priorityBadge, actions);
 
   const title = createElement("h4", "card-title", card.title);
-  const description = card.description ? createElement("p", isExpanded ? "card-description" : "card-description hidden", card.description) : null;
-  const dueDate = card.dueDate ? createElement("span", "card-due-date", `Due: ${card.dueDate}`) : null;
+  const description = card.description
+    ? createElement(
+        "p",
+        isExpanded ? "card-description" : "card-description hidden",
+        card.description,
+      )
+    : null;
+  const dueDate = card.dueDate
+    ? createElement("span", "card-due-date", `Due: ${card.dueDate}`)
+    : null;
 
   cardElement.append(colorBar, topRow, title);
 
@@ -392,7 +448,9 @@ function createCardForm(columnId, existingCard) {
   ["LOW", "MEDIUM", "HIGH"].forEach(function (priority) {
     const option = createElement("option", "", priority);
     option.value = priority;
-    option.selected = existingCard ? existingCard.priority === priority : priority === "MEDIUM";
+    option.selected = existingCard
+      ? existingCard.priority === priority
+      : priority === "MEDIUM";
     priorityInput.appendChild(option);
   });
 
@@ -402,7 +460,10 @@ function createCardForm(columnId, existingCard) {
 
   const colorOptions = createElement("div", "color-options");
   cardColors.forEach(function (color) {
-    const colorButton = createElement("button", color === selectedColor ? "color-option active" : "color-option");
+    const colorButton = createElement(
+      "button",
+      color === selectedColor ? "color-option active" : "color-option",
+    );
     colorButton.type = "button";
     colorButton.dataset.color = color;
     colorButton.style.background = color;
@@ -421,13 +482,24 @@ function createCardForm(columnId, existingCard) {
   });
 
   const actions = createElement("div", "form-actions");
-  const saveButton = createElement("button", "form-save-btn", existingCard ? "Save Changes" : "Create Card");
+  const saveButton = createElement(
+    "button",
+    "form-save-btn",
+    existingCard ? "Save Changes" : "Create Card",
+  );
   const cancelButton = createElement("button", "form-cancel-btn", "Cancel");
   saveButton.type = "submit";
   cancelButton.type = "button";
   actions.append(saveButton, cancelButton);
 
-  formElement.append(titleInput, descriptionInput, priorityInput, dueDateInput, colorOptions, actions);
+  formElement.append(
+    titleInput,
+    descriptionInput,
+    priorityInput,
+    dueDateInput,
+    colorOptions,
+    actions,
+  );
 
   formElement.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -437,7 +509,7 @@ function createCardForm(columnId, existingCard) {
       description: descriptionInput.value,
       priority: priorityInput.value,
       dueDate: dueDateInput.value,
-      color: chosenColor
+      color: chosenColor,
     };
 
     if (existingCard) {
@@ -458,7 +530,9 @@ function createCardForm(columnId, existingCard) {
 
 function toggleCardExpand(cardId) {
   expandedCards = expandedCards.includes(cardId)
-    ? expandedCards.filter(function (id) { return id !== cardId; })
+    ? expandedCards.filter(function (id) {
+        return id !== cardId;
+      })
     : expandedCards.concat(cardId);
 
   renderBoard();
@@ -525,7 +599,7 @@ function saveCard(columnId, cardData) {
     priority: cardData.priority,
     dueDate: cardData.dueDate,
     color: cardData.color,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 
   openForm = { columnId: null, cardId: null };
@@ -595,7 +669,7 @@ function addColumn() {
   activeBoard.columns.push({
     id: generateId("column"),
     title: columnName.trim().toUpperCase(),
-    cards: []
+    cards: [],
   });
 
   saveState();
@@ -692,7 +766,7 @@ function createBoard(name) {
   const newBoard = {
     id: generateId("board"),
     name: cleanName,
-    columns: createDefaultColumns()
+    columns: createDefaultColumns(),
   };
 
   appState.boards.push(newBoard);
